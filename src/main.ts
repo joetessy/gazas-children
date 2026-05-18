@@ -1,6 +1,7 @@
 import './style.css'
 import { loadDataBundle } from './data/loader.ts'
 import { mountStarfield } from './starfield/Starfield.ts'
+import { mountStarfield3D } from './starfield/3d/Starfield3D.ts'
 
 const app = document.getElementById('app')
 if (!app) throw new Error('No #app mount point')
@@ -18,14 +19,29 @@ const renderError = ({ err }: { err: unknown }) => {
   `
 }
 
+const supportsWebGL2 = (): boolean => {
+  try {
+    const canvas = document.createElement('canvas')
+    return !!canvas.getContext('webgl2')
+  } catch {
+    return false
+  }
+}
+
 const boot = async () => {
   renderLoading()
   try {
     const { dataset, snapshot } = await loadDataBundle()
     if (teardown) teardown()
     app.innerHTML = ''
-    const sf = mountStarfield({ container: app, dataset, snapshot })
-    teardown = sf.destroy
+
+    if (supportsWebGL2()) {
+      const sf = mountStarfield3D({ container: app, dataset, snapshot })
+      teardown = sf.destroy
+    } else {
+      const sf = mountStarfield({ container: app, dataset, snapshot })
+      teardown = sf.destroy
+    }
   } catch (err) {
     renderError({ err })
   }

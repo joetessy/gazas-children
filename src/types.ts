@@ -42,3 +42,20 @@ export interface PourState {
   durationMs: number
   done: boolean
 }
+
+export interface StarGeometry3D {
+  count: number
+  positions: Float32Array
+  sizes: Float32Array
+  phases: Float32Array
+  brightness: Float32Array
+  speeds: Float32Array
+  amplitudes: Float32Array
+  styles: Uint8Array
+  appearTime: Float32Array
+  bounds: { min: [number, number, number]; max: [number, number, number] }
+  cellSize: number
+  gridDims: [number, number, number]
+  grid: Int32Array
+  gridStarts: Int32Array
+}
