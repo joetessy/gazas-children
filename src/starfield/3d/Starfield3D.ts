@@ -217,6 +217,16 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   let pointerValid = false
   let touchTapPending = false
 
+  // Touch tap-vs-drag discrimination. We only count a touch as a tap (and
+  // therefore a request to reveal a name) if the finger barely moved and the
+  // gesture was short. A hold-and-drag-to-rotate must never reveal a name.
+  const TAP_MAX_MOVE_PX = 8
+  const TAP_MAX_DURATION_MS = 600
+  let tapPointerId: number | null = null
+  let tapStartX = 0
+  let tapStartY = 0
+  let tapStartTime = 0
+
   const setHoverCard = (idx: number | null) => {
     if (idx === null) {
       hoverEl.removeAttribute('data-visible')
@@ -323,7 +333,18 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   }
 
   const onPointerMove = (e: PointerEvent) => {
-    if (e.pointerType === 'touch') return
+    if (e.pointerType === 'touch') {
+      // If this touch was a tap candidate, see if it has moved far enough to
+      // be reclassified as a drag (rotation gesture).
+      if (tapPointerId !== null && e.pointerId === tapPointerId) {
+        const dx = e.clientX - tapStartX
+        const dy = e.clientY - tapStartY
+        if (dx * dx + dy * dy > TAP_MAX_MOVE_PX * TAP_MAX_MOVE_PX) {
+          tapPointerId = null
+        }
+      }
+      return
+    }
     updatePointer(e.clientX, e.clientY, true)
   }
   const onPointerLeave = (e: PointerEvent) => {
@@ -335,13 +356,36 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   }
   const onPointerDown = (e: PointerEvent) => {
     if (e.pointerType !== 'touch') return
+    // A second simultaneous finger means a pinch — not a tap on a star.
+    if (tapPointerId !== null) {
+      tapPointerId = null
+      return
+    }
+    tapPointerId = e.pointerId
+    tapStartX = e.clientX
+    tapStartY = e.clientY
+    tapStartTime = performance.now()
+  }
+  const onPointerUp = (e: PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    if (e.pointerId !== tapPointerId) return
+    const heldFor = performance.now() - tapStartTime
+    tapPointerId = null
+    if (heldFor > TAP_MAX_DURATION_MS) return
+    // Valid tap — request a single hover resolution at the release position.
     updatePointer(e.clientX, e.clientY, true)
     touchTapPending = true
+  }
+  const onPointerCancel = (e: PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    if (e.pointerId === tapPointerId) tapPointerId = null
   }
 
   canvas.addEventListener('pointermove', onPointerMove)
   canvas.addEventListener('pointerleave', onPointerLeave)
   canvas.addEventListener('pointerdown', onPointerDown)
+  canvas.addEventListener('pointerup', onPointerUp)
+  canvas.addEventListener('pointercancel', onPointerCancel)
 
   // ── Skip button ──────────────────────────────────────────────────────────
   const onSkip = () => {
@@ -415,19 +459,27 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
 
     // Hover resolution — runs once per frame, after controls and before render
     if ((pointerValid || touchTapPending) && phase !== 'pre') {
-      const tolerance = touchTapPending ? TAP_TOLERANCE_PX : HOVER_TOLERANCE_PX
+      const isTouchTap = touchTapPending
+      const tolerance = isTouchTap ? TAP_TOLERANCE_PX : HOVER_TOLERANCE_PX
       const dpr = cappedDPR()
       const found = hover.resolve(elapsedMs, lastW, lastH, dpr, tolerance, POINT_SCALE, POINT_SIZE_CAP_PX)
       if (found !== hoverIdx) {
         hoverIdx = found
         setHoverCard(found)
-      } else if (found !== null) {
+      } else if (found !== null && !isTouchTap) {
+        // Mouse hover: keep card anchored under the cursor.
         placeHover(pointerScreenX, pointerScreenY)
-        // Keep the leader line tracking the star as the camera moves
-        updateHoverLine(found)
+      }
+      if (isTouchTap) {
+        // Card is sticky after a tap — stop probing until the next gesture.
+        pointerValid = false
+        hover.setPointer(0, 0, false)
       }
       touchTapPending = false
     }
+    // Keep the leader line tracking the star as the camera rotates, even
+    // after a touch tap has released the pointer.
+    if (hoverIdx !== null) updateHoverLine(hoverIdx)
 
     renderer.render(threeScene, camera)
     raf = requestAnimationFrame(tick)
@@ -445,6 +497,8 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointerleave', onPointerLeave)
       canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointercancel', onPointerCancel)
       canvas.removeEventListener('pointerdown', stopAutoRotate)
       canvas.removeEventListener('wheel', stopAutoRotate)
       skipBtn.removeEventListener('click', onSkip)
