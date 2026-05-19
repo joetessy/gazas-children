@@ -1,6 +1,6 @@
-# Children of Gaza
+# Gaza's Children
 
-![Children of Gaza starfield](docs/screenshot.png)
+![Gaza's Children starfield](docs/screenshot.png)
 
 An interactive memorial: one star for every child (age < 18) recorded as killed in Gaza. Names appear in Arabic and English as you move across the field.
 
