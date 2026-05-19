@@ -19,12 +19,24 @@ interface MountHandle {
 }
 
 const POUR_DURATION_MS = 90_000
-const PRE_PHASE_MS = 3200
+const MEMORIAL_DISPLAY_MS = 4800       // memorial text fades out at this time (gives "n children" a beat alone before the line joins)
+const PRE_PHASE_MS = 8800              // total intro duration (memorial + instructions) before stars start
 const HOVER_TOLERANCE_PX = 4
 const TAP_TOLERANCE_PX = 12
 // Must match the shader's gl_PointSize formula in stars.ts
 const POINT_SCALE = 6.5
 const POINT_SIZE_CAP_PX = 20
+
+// Must match the sphere boundary used in geometry3d.ts
+const CLUSTER_RADIUS = 1.25
+const MIN_ZOOM_DISTANCE = 0.4
+// Multiplier on the just-fits distance — >1 leaves a small margin so stars at the cluster edge don't kiss the viewport edge
+const MAX_ZOOM_MARGIN = 1.05
+
+const computeMaxDistance = (aspect: number, fovDeg: number): number => {
+  const halfTan = Math.tan((fovDeg * Math.PI) / 360)
+  return (CLUSTER_RADIUS / (halfTan * Math.min(aspect, 1))) * MAX_ZOOM_MARGIN
+}
 
 const FORMATTER = new Intl.NumberFormat('en-US')
 
@@ -59,7 +71,6 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   // ── Pour & geometry ──────────────────────────────────────────────────────
   const reduced = prefersReducedMotion()
   const effectivePour = reduced ? 800 : POUR_DURATION_MS
-  const captionLingerMs = reduced ? 0 : 1600
   const pour = buildPour({ count: dataset.count, durationMs: effectivePour })
 
   const geometry3d = buildGeometry3D({
@@ -88,8 +99,8 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   controls.screenSpacePanning = false  // belt and braces
   controls.rotateSpeed = 0.85
   controls.zoomSpeed = 0.9
-  controls.minDistance = 1.5
-  controls.maxDistance = 7
+  controls.minDistance = MIN_ZOOM_DISTANCE
+  controls.maxDistance = computeMaxDistance(camera.aspect, camera.fov) // refreshed on resize
   // Keep the camera within a comfortable range — no upside-down views
   controls.minPolarAngle = 0.2 * Math.PI
   controls.maxPolarAngle = 0.8 * Math.PI
@@ -98,7 +109,7 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   controls.mouseButtons.RIGHT = null
   controls.touches.TWO = TOUCH.DOLLY_PAN
   controls.autoRotate = false
-  controls.autoRotateSpeed = 0.35
+  controls.autoRotateSpeed = 0.05
   controls.update()
 
   // ── Keyboard navigation ─────────────────────────────────────────────────
@@ -156,13 +167,13 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   overlay.innerHTML = `
     <div class="sf-intro" data-phase="pre">
       <h1 class="sf-intro__number">${FORMATTER.format(dataset.count)}<span class="sf-intro__children"> children</span></h1>
-      <p class="sf-intro__line">Killed in the Israeli Genocide on Gaza</p>
+      <p class="sf-intro__line">killed in the Israeli Genocide on Gaza</p>
     </div>
     <div class="sf-tally" data-visible="false">
       <span class="sf-tally__current mono">0</span><span class="sf-tally__sep"> / </span><span class="sf-tally__total mono">${FORMATTER.format(dataset.count)}</span>
     </div>
     <div class="sf-caption" data-visible="false">
-      Drag or <span class="mono">←↑↓→</span> to rotate · scroll or <span class="mono">+ −</span> to zoom · <span class="mono">R</span> to recenter · hover a star for their name.
+      This is an interactive memorial.<br/>Use the mouse or drag to rotate the cluster. Scroll or pinch to zoom in.
     </div>
     <div class="sf-meta">
       <span class="sf-meta__snap">Snapshot ${formatDate({ iso: snapshot.date })}</span>
@@ -194,8 +205,6 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   const hoverAgeEl = overlay.querySelector<HTMLElement>('.sf-hover__age')!
   const hoverLineEl = overlay.querySelector<SVGSVGElement>('.sf-hover-line')!
   const hoverLineSeg = hoverLineEl.querySelector<SVGLineElement>('line')!
-
-  captionEl.setAttribute('data-visible', 'true')
 
   // ── Hover detection ──────────────────────────────────────────────────────
   const hover = createHover({ camera, geometry: geometry3d })
@@ -276,32 +285,28 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   }
 
   // ── Phase state machine ──────────────────────────────────────────────────
-  type Phase = 'pre' | 'pour' | 'full'
+  type Phase = 'pre' | 'instructions' | 'pour' | 'full'
   let phase: Phase = 'pre'
   const mountTime = performance.now()
   let phaseStart = mountTime
-  let captionFadeTimer: number | null = null
 
   const setPhase = (next: Phase) => {
     if (phase === next) return
     phase = next
     phaseStart = performance.now()
+    // Memorial text is only shown in the 'pre' phase
     introEl.setAttribute('data-phase', next === 'pre' ? 'pre' : 'gone')
+    // Tally appears once stars start
     if (next === 'pour' || next === 'full') {
       tallyEl.setAttribute('data-visible', 'true')
     }
-    if (next === 'pour') {
-      captionFadeTimer = window.setTimeout(() => {
-        captionEl.setAttribute('data-visible', 'false')
-        captionFadeTimer = null
-      }, captionLingerMs)
+    // Instructions caption is only shown during the 'instructions' phase
+    captionEl.setAttribute('data-visible', next === 'instructions' ? 'true' : 'false')
+    // Auto-rotate kicks in when stars begin filling
+    if (next === 'pour' && !reduced) {
+      controls.autoRotate = true
     }
     if (next === 'full') {
-      if (captionFadeTimer !== null) {
-        window.clearTimeout(captionFadeTimer)
-        captionFadeTimer = null
-      }
-      captionEl.setAttribute('data-visible', 'false')
       skipBtn.setAttribute('data-hidden', 'true')
     }
   }
@@ -362,6 +367,7 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
     lastW = w
     lastH = h
     sceneSetup.setSize(w, h)
+    controls.maxDistance = computeMaxDistance(camera.aspect, camera.fov)
     const dpr = cappedDPR()
     sceneSetup.setPixelRatio(dpr)
     stars.setPixelRatio(dpr)
@@ -380,8 +386,14 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
 
     // Phase progression
     if (phase === 'pre') {
-      const preFor = now - phaseStart
-      if (reduced || preFor > PRE_PHASE_MS) {
+      if (reduced) {
+        setPhase('pour')
+        pour.startedAt = now
+      } else if (elapsedMs > MEMORIAL_DISPLAY_MS) {
+        setPhase('instructions')
+      }
+    } else if (phase === 'instructions') {
+      if (elapsedMs > PRE_PHASE_MS) {
         setPhase('pour')
         pour.startedAt = now
       }

@@ -54,7 +54,7 @@ export const mountStarfield = ({
   overlay.innerHTML = `
     <div class="sf-intro" data-phase="pre">
       <h1 class="sf-intro__number">${FORMATTER.format(dataset.count)}<span class="sf-intro__children"> children</span></h1>
-      <p class="sf-intro__line">Killed in the Israeli Genocide on Gaza</p>
+      <p class="sf-intro__line">killed in the Israeli Genocide on Gaza</p>
     </div>
     <div class="sf-tally" data-visible="false">
       <span class="sf-tally__current mono">0</span><span class="sf-tally__sep"> / </span><span class="sf-tally__total mono">${FORMATTER.format(dataset.count)}</span>
