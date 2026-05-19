@@ -318,14 +318,14 @@ body.route-names {
 }
 
 .sf-hover-line[data-visible='true'] {
-  opacity: 0.55;
+  opacity: 0.75;
 }
 
 .sf-hover-line line {
   stroke: var(--color-candle);
-  stroke-width: 1;
-  stroke-dasharray: 3 4;
-  stroke-opacity: 0.8;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 5;
+  stroke-opacity: 0.9;
   vector-effect: non-scaling-stroke;
 }
 

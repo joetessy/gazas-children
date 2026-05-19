@@ -167,7 +167,7 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
   overlay.innerHTML = `
     <div class="sf-intro" data-phase="pre">
       <h1 class="sf-intro__number">${FORMATTER.format(dataset.count)}<span class="sf-intro__children"> children</span></h1>
-      <p class="sf-intro__line">killed in the Israeli Genocide on Gaza</p>
+      <p class="sf-intro__line">killed by Israel in the Genocide on Gaza</p>
     </div>
     <div class="sf-tally" data-visible="false">
       <span class="sf-tally__current mono">0</span><span class="sf-tally__sep"> / </span><span class="sf-tally__total mono">${FORMATTER.format(dataset.count)}</span>
@@ -246,7 +246,7 @@ export const mountStarfield3D = ({ container, dataset, snapshot }: MountArgs): M
     const rect = hoverEl.getBoundingClientRect()
     const vw = window.innerWidth
     const vh = window.innerHeight
-    const off = 20
+    const off = 36
     let left = x + off
     let top = y + off
     if (left + rect.width + 16 > vw) left = x - rect.width - off
