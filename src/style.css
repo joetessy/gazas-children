@@ -413,7 +413,9 @@ body.route-names {
     font-size: 0.82rem;
   }
   .sf-caption {
-    display: none;
+    font-size: clamp(1.1rem, 5vw, 1.5rem);
+    max-width: min(86vw, 22rem);
+    line-height: 1.4;
   }
   .sf-hover__arabic {
     font-size: 1.6rem;
