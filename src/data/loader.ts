@@ -1,17 +1,22 @@
-import type { Dataset, Snapshot } from '../types.ts'
+import type { Dataset, Snapshot, DailyTimeline } from '../types.ts'
 
 interface DataBundle {
   snapshot: Snapshot
   dataset: Dataset
+  daily: DailyTimeline | null
 }
 
 const decoder = new TextDecoder('utf-8')
 
 export const loadDataBundle = async (): Promise<DataBundle> => {
-  const [snapshotRes, namesRes, metaRes] = await Promise.all([
+  const [snapshotRes, namesRes, metaRes, dobRes, dailyRes] = await Promise.all([
     fetch('/data/snapshot.json'),
     fetch('/data/names.bin'),
-    fetch('/data/meta.bin')
+    fetch('/data/meta.bin'),
+    // dob.bin and daily.json power birthdays and the timeline. They're optional:
+    // the memorial still works if either is missing, so failures don't throw.
+    fetch('/data/dob.bin').catch(() => null),
+    fetch('/data/daily.json').catch(() => null)
   ])
 
   if (!snapshotRes.ok || !namesRes.ok || !metaRes.ok) {
@@ -42,11 +47,33 @@ export const loadDataBundle = async (): Promise<DataBundle> => {
 
   const ages = metaBuf.subarray(0, count)
 
+  // Date of birth — yyyymmdd per record, little-endian Uint32. Zero-filled if
+  // the file is missing so birthday lookups simply find nothing.
+  const dob = new Uint32Array(count)
+  if (dobRes && dobRes.ok) {
+    const dobBuf = new Uint8Array(await dobRes.arrayBuffer())
+    const dv = new DataView(dobBuf.buffer, dobBuf.byteOffset, dobBuf.byteLength)
+    for (let i = 0; i < count && (i + 1) * 4 <= dobBuf.byteLength; i += 1) {
+      dob[i] = dv.getUint32(i * 4, true)
+    }
+  }
+
+  let daily: DailyTimeline | null = null
+  if (dailyRes && dailyRes.ok) {
+    try {
+      daily = (await dailyRes.json()) as DailyTimeline
+    } catch {
+      daily = null
+    }
+  }
+
   return {
     snapshot,
+    daily,
     dataset: {
       count,
       ages: new Uint8Array(ages),
+      dob,
       arabicAt,
       englishAt
     }

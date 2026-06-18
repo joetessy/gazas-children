@@ -7,8 +7,22 @@ export interface Snapshot {
 export interface Dataset {
   count: number
   ages: Uint8Array
+  // Date of birth packed as yyyymmdd per record (0 = unknown).
+  dob: Uint32Array
   arabicAt: (index: number) => string
   englishAt: (index: number) => string
+}
+
+export interface DailyPoint {
+  d: string
+  c: number
+}
+
+// Reported cumulative children toll over real calendar dates, used to drive
+// the timeline scrubber. `final` is the most recent cumulative figure.
+export interface DailyTimeline {
+  final: number
+  points: DailyPoint[]
 }
 
 export interface ChildRecord {

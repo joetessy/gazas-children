@@ -8,6 +8,11 @@ interface HoverArgs {
 
 interface HoverHandle {
   setPointer: (canvasX: number, canvasY: number, valid: boolean) => void
+  // Restrict hit-testing to the stars the timeline currently reveals. Pass
+  // count < 0 (the default) to fall back to per-star appear time.
+  setReveal: (count: number, order: Float32Array | null) => void
+  // When isolating a set (birthdays / candles), only those stars are hittable.
+  setIsolation: (active: boolean, flags: Float32Array | null) => void
   resolve: (
     currentTimeMs: number,
     viewportW: number,
@@ -27,12 +32,26 @@ export const createHover = ({ camera, geometry }: HoverArgs): HoverHandle => {
   let px = 0
   let py = 0
   let valid = false
+  let revealCount = -1
+  let revealOrder: Float32Array | null = null
+  let isoActive = false
+  let isoFlags: Float32Array | null = null
 
   return {
     setPointer: (canvasX, canvasY, isValid) => {
       px = canvasX
       py = canvasY
       valid = isValid
+    },
+
+    setReveal: (count, order) => {
+      revealCount = count
+      revealOrder = order
+    },
+
+    setIsolation: (active, flags) => {
+      isoActive = active
+      isoFlags = flags
     },
 
     resolve: (currentTimeMs, viewportW, viewportH, pixelRatio, tolerancePx, pointScale, pointSizeCapPx) => {
@@ -54,7 +73,14 @@ export const createHover = ({ camera, geometry }: HoverArgs): HoverHandle => {
       let bestScore = Infinity
 
       for (let i = 0; i < count; i += 1) {
-        if (appearTime[i] > currentTimeMs) continue
+        // When isolating birthdays, ignore everything else entirely.
+        if (isoActive && isoFlags && isoFlags[i] < 0.5) continue
+        // Skip stars not yet revealed — by timeline rank if active, else by time.
+        if (revealCount >= 0 && revealOrder) {
+          if (revealOrder[i] >= revealCount) continue
+        } else if (appearTime[i] > currentTimeMs) {
+          continue
+        }
 
         const x = positions[i * 3]
         const y = positions[i * 3 + 1]

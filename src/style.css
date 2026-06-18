@@ -113,6 +113,16 @@ body.route-names {
   pointer-events: auto;
 }
 
+/* …but a hidden container's (invisible) buttons must not intercept clicks meant
+   for the starfield. The rule above re-enables every button, including those in
+   a closed panel, the closed focus card, and the controls before they fade in —
+   so switch their pointer events back off while their container is hidden. */
+.sf-panel:not([data-open='true']) *,
+.sf-focus:not([data-visible='true']) *,
+.sf-controls:not([data-visible='true']) * {
+  pointer-events: none;
+}
+
 /* intro */
 
 .sf-intro {
@@ -177,7 +187,7 @@ body.route-names {
 .sf-tally {
   position: absolute;
   left: 50%;
-  bottom: 4.2rem;
+  top: 1.1rem;
   transform: translateX(-50%);
   font-family: var(--font-mono);
   font-size: 0.95rem;
@@ -190,6 +200,7 @@ body.route-names {
   opacity: 0;
   transition: opacity 900ms ease;
   white-space: nowrap;
+  z-index: 6;
 }
 
 .sf-tally[data-visible='true'] {
@@ -393,14 +404,500 @@ body.route-names {
   font-weight: 600;
 }
 
+.sf-hover__bday {
+  display: none;
+  margin-top: 0.35rem;
+  color: var(--color-candle);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+
+.sf-hover__bday[data-show='true'] {
+  display: block;
+}
+
+/* ------------------------------------------------------------------ CONTROLS */
+
+.sf-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 1.4rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 94vw;
+  opacity: 0;
+  transition: opacity 900ms ease;
+  z-index: 42;
+}
+
+.sf-controls[data-visible='true'] {
+  opacity: 1;
+}
+
+.sf-ctrl {
+  background: color-mix(in oklab, var(--color-night) 74%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-ink) 16%, transparent);
+  color: var(--color-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.sf-ctrl:hover {
+  color: var(--color-candle);
+  border-color: color-mix(in oklab, var(--color-candle) 50%, transparent);
+}
+
+.sf-ctrl[data-active='true'] {
+  color: var(--color-night);
+  background: var(--color-candle);
+  border-color: var(--color-candle);
+}
+
+.sf-ctrl[data-show='false'] {
+  display: none;
+}
+
+.sf-ctrl--bday,
+.sf-ctrl--candle {
+  color: var(--color-candle);
+  border-color: color-mix(in oklab, var(--color-candle) 40%, transparent);
+}
+
+/* ------------------------------------------------------------------ PANELS */
+
+.sf-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 4.7rem;
+  transform: translate(-50%, 8px);
+  width: min(30rem, 92vw);
+  box-sizing: border-box;
+  background: color-mix(in oklab, var(--color-night) 90%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-candle) 26%, transparent);
+  box-shadow: 0 20px 48px -18px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  padding: 0.9rem;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+  z-index: 41;
+}
+
+.sf-panel[data-open='true'] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.sf-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.7rem;
+}
+
+.sf-panel__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink-whisper);
+}
+
+/* search */
+
+.sf-search__input {
+  width: 100%;
+  box-sizing: border-box;
+  background: color-mix(in oklab, var(--color-night) 60%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-ink) 18%, transparent);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  padding: 0.6rem 0.75rem;
+  outline: none;
+}
+
+.sf-search__input:focus {
+  border-color: color-mix(in oklab, var(--color-candle) 55%, transparent);
+}
+
+.sf-search__input::placeholder {
+  color: var(--color-ink-whisper);
+}
+
+.sf-search__results {
+  margin-top: 0.6rem;
+  max-height: min(42vh, 22rem);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sf-search__empty {
+  color: var(--color-ink-whisper);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  margin: 0.4rem 0.2rem;
+}
+
+.sf-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  text-align: right;
+  background: none;
+  border: none;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-ink) 8%, transparent);
+  padding: 0.5rem 0.4rem;
+  cursor: pointer;
+}
+
+.sf-result:hover {
+  background: color-mix(in oklab, var(--color-candle) 10%, transparent);
+}
+
+.sf-result__ar {
+  font-family: var(--font-arabic);
+  direction: rtl;
+  font-size: 1.25rem;
+  color: var(--color-candle);
+  line-height: 1.2;
+}
+
+.sf-result__en {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+.sf-result__age {
+  color: var(--color-ink-whisper);
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+/* age histogram */
+
+.sf-ages__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 90px;
+}
+
+.sf-agebar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  height: 100%;
+  padding: 0;
+}
+
+.sf-agebar__fill {
+  width: 100%;
+  height: var(--h);
+  min-height: 2px;
+  background: color-mix(in oklab, var(--color-ink-soft) 38%, transparent);
+  transition:
+    background 160ms ease;
+}
+
+.sf-agebar:hover .sf-agebar__fill {
+  background: color-mix(in oklab, var(--color-candle) 60%, transparent);
+}
+
+.sf-agebar[data-active='true'] .sf-agebar__fill {
+  background: var(--color-candle);
+}
+
+.sf-agebar__n {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--color-ink-whisper);
+}
+
+.sf-agebar[data-active='true'] .sf-agebar__n {
+  color: var(--color-candle);
+}
+
+.sf-ages__all {
+  background: none;
+  border: 1px solid color-mix(in oklab, var(--color-ink) 16%, transparent);
+  color: var(--color-ink-whisper);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.55rem;
+  cursor: pointer;
+}
+
+.sf-ages__all[data-active='true'] {
+  color: var(--color-candle);
+  border-color: color-mix(in oklab, var(--color-candle) 45%, transparent);
+}
+
+/* timeline */
+
+.sf-timeline__date {
+  color: var(--color-candle);
+  font-size: 0.95rem;
+}
+
+.sf-timeline__play {
+  background: none;
+  border: 1px solid color-mix(in oklab, var(--color-ink) 16%, transparent);
+  color: var(--color-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sf-timeline__play:hover {
+  color: var(--color-candle);
+  border-color: var(--color-candle);
+}
+
+.sf-timeline__range {
+  width: 100%;
+  margin: 0.2rem 0 0.55rem;
+  accent-color: var(--color-candle);
+}
+
+.sf-timeline__note {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-whisper);
+}
+
+/* ------------------------------------------------------------------ FOCUS CARD */
+
+.sf-focus {
+  position: absolute;
+  left: 50%;
+  top: 4.5rem;
+  transform: translate(-50%, -8px);
+  width: min(26rem, 90vw);
+  box-sizing: border-box;
+  background: color-mix(in oklab, var(--color-night) 90%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-candle) 34%, transparent);
+  box-shadow:
+    0 0 40px -10px rgba(247, 228, 191, 0.22),
+    0 20px 48px -18px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  padding: 1rem 1.2rem 0.9rem;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease;
+  z-index: 46;
+}
+
+.sf-focus[data-visible='true'] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.sf-focus__close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--color-ink-whisper);
+  font-size: 1.45rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+}
+
+.sf-focus__close:hover {
+  color: var(--color-candle);
+}
+
+.sf-focus__nav {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  margin: 0 0 0.7rem;
+}
+
+.sf-focus__nav[data-show='true'] {
+  display: flex;
+}
+
+.sf-focus__prev,
+.sf-focus__next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: none;
+  border: 1px solid color-mix(in oklab, var(--color-candle) 30%, transparent);
+  color: var(--color-candle);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 200ms ease,
+    border-color 200ms ease;
+}
+
+.sf-focus__prev:hover,
+.sf-focus__next:hover {
+  background: color-mix(in oklab, var(--color-candle) 18%, transparent);
+}
+
+.sf-focus__pos {
+  min-width: 4rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-whisper);
+}
+
+.sf-focus__arabic {
+  font-family: var(--font-arabic);
+  direction: rtl;
+  text-align: right;
+  font-size: 2rem;
+  line-height: 1.15;
+  color: var(--color-candle);
+  margin: 0;
+}
+
+.sf-focus__english {
+  margin: 0.3rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--color-ink-soft);
+  text-align: right;
+}
+
+.sf-focus__age {
+  margin: 0.65rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-whisper);
+  text-align: right;
+}
+
+.sf-focus__age strong {
+  color: var(--color-candle);
+  font-weight: 600;
+}
+
+.sf-focus__bday {
+  display: none;
+  margin: 0.5rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--color-candle);
+  text-align: right;
+}
+
+.sf-focus__bday[data-show='true'] {
+  display: block;
+}
+
+.sf-focus__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid color-mix(in oklab, var(--color-ink) 12%, transparent);
+}
+
+.sf-focus__candle,
+.sf-focus__share {
+  flex: 1;
+  background: none;
+  border: 1px solid color-mix(in oklab, var(--color-ink) 18%, transparent);
+  color: var(--color-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.5rem;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.sf-focus__candle:hover,
+.sf-focus__share:hover {
+  color: var(--color-candle);
+  border-color: color-mix(in oklab, var(--color-candle) 50%, transparent);
+}
+
+.sf-focus__candle[data-on='true'] {
+  color: var(--color-night);
+  background: var(--color-candle);
+  border-color: var(--color-candle);
+}
+
+.sf-focus__candle[data-on='true']:hover {
+  background: color-mix(in oklab, var(--color-candle) 82%, var(--color-night));
+  border-color: color-mix(in oklab, var(--color-candle) 82%, var(--color-night));
+}
+
 /* mobile tweaks */
 
 @media (max-width: 720px) {
+  /* Stack the top zone vertically and centred so nothing collides:
+     tally on top, provenance just beneath it. */
   .sf-meta {
-    font-size: 0.58rem;
-    top: 0.75rem;
-    left: 0.9rem;
-    max-width: 60vw;
+    font-size: 0.5rem;
+    top: 2.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    justify-content: center;
+    text-align: center;
+    max-width: 94vw;
   }
   .sf-skip {
     top: 0.75rem;
@@ -409,8 +906,9 @@ body.route-names {
     padding: 0.35rem 0.65rem;
   }
   .sf-tally {
-    bottom: 3.2rem;
-    font-size: 0.82rem;
+    top: 0.8rem;
+    font-size: 0.78rem;
+    padding: 0.35rem 0.7rem;
   }
   .sf-caption {
     font-size: clamp(1.1rem, 5vw, 1.5rem);
@@ -419,6 +917,28 @@ body.route-names {
   }
   .sf-hover__arabic {
     font-size: 1.6rem;
+  }
+  .sf-controls {
+    bottom: 0.85rem;
+    gap: 0.35rem;
+  }
+  .sf-ctrl {
+    font-size: 0.52rem;
+    letter-spacing: 0.1em;
+    padding: 0.42rem 0.55rem;
+  }
+  .sf-panel {
+    bottom: 3.9rem;
+    padding: 0.75rem;
+  }
+  .sf-focus {
+    top: 4.6rem;
+  }
+  .sf-focus__arabic {
+    font-size: 1.65rem;
+  }
+  .sf-agebar__n {
+    font-size: 0.42rem;
   }
 }
 
@@ -432,7 +952,10 @@ body.route-names {
   }
   .sf-intro,
   .sf-tally,
-  .sf-caption {
+  .sf-caption,
+  .sf-controls,
+  .sf-panel,
+  .sf-focus {
     transition: none;
   }
   .sf-hover {

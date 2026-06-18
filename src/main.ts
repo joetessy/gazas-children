@@ -31,12 +31,12 @@ const supportsWebGL2 = (): boolean => {
 const boot = async () => {
   renderLoading()
   try {
-    const { dataset, snapshot } = await loadDataBundle()
+    const { dataset, snapshot, daily } = await loadDataBundle()
     if (teardown) teardown()
     app.innerHTML = ''
 
     if (supportsWebGL2()) {
-      const sf = mountStarfield3D({ container: app, dataset, snapshot })
+      const sf = mountStarfield3D({ container: app, dataset, snapshot, daily })
       teardown = sf.destroy
     } else {
       const sf = mountStarfield({ container: app, dataset, snapshot })

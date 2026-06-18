@@ -6,12 +6,14 @@
   "description": "A memorial field of shoes — one pair for each child killed in Gaza.",
   "scripts": {
     "build-data": "tsx scripts/build-dataset.ts",
+    "build-og": "tsx scripts/build-og.ts",
     "dev": "vite",
-    "build": "pnpm run build-data && vite build",
+    "build": "pnpm run build-data && pnpm run build-og && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^25.6.0",
     "@types/three": "^0.184.1",
